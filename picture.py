@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
 import sys
 from PIL import ImageFont
 from PIL import Image
@@ -9,60 +8,78 @@ from PIL import ImageFilter
 import requests
 import datetime
 
-def createImage(row_list, count):
-    img = Image.open("white.jpg")
-    img.filter(ImageFilter.GaussianBlur(4.0))
+
+def drawText(draw,
+             text_font_family,
+             text_max_font_size, 
+             text_color,
+             text_height,
+             text,
+             img_width,
+             img_height
+             ):
+
+    out_text_size = (img_width + 1, img_height + 1)
+    font_size_offset = 0
+    font = ImageFont.truetype(text_font_family, text_max_font_size, encoding='utf-8')
+    # フォントの描画サイズが描画領域のサイズを下回るまでwhile
+    while img_width < out_text_size[0] + 120 or img_height < out_text_size[1]+ 120:
+        font = ImageFont.truetype(text_font_family, text_max_font_size - font_size_offset)
+        # draw.textsizeで描画時のサイズを取得
+        out_text_size = draw.textsize(text, font=font)
+        font_size_offset += 1
+    w, h = font.getsize(text)
+    x = (img_width - w)/2
+    y = (img_height - h)/2
+    draw.text((x, y + text_height), text, fill=(text_color), font=font)
+
+def createImage(row_list, count, ladies_count): 
+    if row_list[6].count("AbemaTV") and row_list[6].count("ニコニコ"):
+        image_name = "abema-niconico.jpg"
+        text_color = "#FFF"
+    elif row_list[6].count("AbemaTV"):
+        image_name = "abema.jpg"
+        text_color = "#FFF"
+    elif row_list[6].count("ニコニコ"):
+        image_name = "niconico.jpg"
+        text_color = "#FFF"
+    elif row_list[0].count("銀河"):
+        image_name = "ginga.jpg"
+        text_color = "#FFF"
+    elif row_list[0].count("NHK杯"):
+        row_list[0] = "NHK杯テレビ将棋トーナメント"
+        image_name = "nhk.jpg"
+        text_color = "#000"
+    elif ladies_count == 2:
+        image_name = "ladies.jpg"
+        text_color = "#000"
+    else:
+        image_name = "standart.jpg"
+        text_color = "#000"
+    img = Image.open(image_name)
+    img.filter(ImageFilter.GaussianBlur(10.0))
     draw = ImageDraw.Draw(img)
 
     img_width = 1920
     img_height = 1278
 
+    text_font_family = 'aoyagireisyosimo_otf_2_01.otf'
+    
+    players = row_list[1] + "" + row_list[2]  + " - " + row_list[3] + "" + row_list[4]
+    drawText(draw, text_font_family, 500, text_color, -300, players, img_width, img_height)
 
-    #######これと
-    out_text_size = (img_width + 1, img_height + 1)
-    font_size_offset = 0
-    players_fontFile = 'KouzanMouhituFontOTF.otf'
-    players_font = ImageFont.truetype(players_fontFile, 300, encoding='utf-8')
-    players = row_list[1] + " " + row_list[2]  + " - " + row_list[3] + " " + row_list[4]
-    # フォントの描画サイズが描画領域のサイズを下回るまでwhile
-    while img_width < out_text_size[0] + 300 or img_height < out_text_size[1]+ 300:
-        players_font = ImageFont.truetype(players_fontFile, 150 - font_size_offset)
-        # draw.textsizeで描画時のサイズを取得
-        out_text_size = draw.textsize(players, font=players_font)
-        font_size_offset += 1
-    players_w, players_h = players_font.getsize(players)
-    players_x = (img_width - players_w)/2
-    players_y = (img_height - players_h)/2
-    draw.text((players_x, players_y - 350), players, fill=("#000000"), font=players_font)
+    title =  row_list[0]
+    drawText(draw, text_font_family, 100, text_color, 320, title, img_width, img_height)
 
-    #######これが一緒の為メソッドに切り出す
-    out_text_size = (img_width + 1, img_height + 1)
-    font_size_offset = 0
-    title_fontFile = 'KouzanMouhituFontOTF.otf'
-    title_font = ImageFont.truetype(title_fontFile, 80, encoding='utf-8')
-    title = row_list[0]
-    # フォントの描画サイズが描画領域のサイズを下回るまでwhile
-    while img_width < out_text_size[0]  + 300 or img_height < out_text_size[1] + 300:
-        title_font = ImageFont.truetype(title_fontFile, 80 - font_size_offset)
-        # draw.textsizeで描画時のサイズを取得
-        out_text_size = draw.textsize(title, font=title_font)
-        font_size_offset += 1
-    title_w, title_h = title_font.getsize(title)
-    title_x = (img_width - title_w)/2
-    title_y = (img_height - title_h)/2
-    draw.text((title_x, title_y + 420), title, fill=("#000000"), font=title_font)
-
-
-    # im.show() #即、プレビューする時はここのコメントアウトを外す
     img.save(str(count) + '.jpg', 'JPEG', quality=100, optimize=True)
     files = {'file': open(str(count) + '.jpg', 'rb')}
-    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-    tomorrow.strftime("%Y年%m月%d日")
+    tomorrow_date = datetime.date.today() + datetime.timedelta(days=1)
+    tomorrow_str = tomorrow_date.strftime("%Y年%m月%d日")
     param = {
         'token':"#", 
         'channels':"CGAUB38SU",
         # 'filename': str(count) + '.jpg',
         # 'initial_comment': "initial_comment",
-        'title': str(tomorrow) + ' - 第' + str(count) + '組',
+        'title': str(tomorrow_str) + ' - 第' + str(count) + '組',
     }
     requests.post(url="https://slack.com/api/files.upload",params=param, files=files)
