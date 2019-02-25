@@ -3,19 +3,14 @@
 from bs4 import BeautifulSoup
 import requests
 import re
-import mysql.connector
 import json
 import sys
 from copy import deepcopy
 from time import time
 from time import sleep
 import datetime
+import urllib.parse
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
-from selenium.webdriver.common.by import By
 import picture
 
 from enum import Enum
@@ -45,7 +40,10 @@ all_row_list = []
 def getPlayerInfo(tag, row_list):
     
     global ladies_count
-    
+
+    if str(tag.text).count("中井広恵") or str(tag.text).count("西山朋佳") :
+        ladies_count += 1
+
     if str(tag.text).count("※"):
         # LPSA所属棋士に付けられる「※」を除いてリストに追加
         row_list.append(tag.text.strip(" ""※"))
@@ -80,25 +78,45 @@ def getPlayerInfo(tag, row_list):
         row_list.append(status)
 
 def postSlackMessage(row_list):
+    base_url = "https://www.google.com/search?q="
+    player1 = urllib.parse.quote(row_list[1] + " 将棋")
+    player1 = base_url + player1
+    
+    player2 = urllib.parse.quote(row_list[3] + " 将棋")
+    player2 = base_url + player2
     # Slackに取得した情報を送信する
     payload = {
         "attachments": [
             {
-                "text": row_list[1] + " " + row_list[2]  + " 対 " + row_list[3] + " " + row_list[4]
-              
+                "fallback": "",
+                "actions": [
+                    {
+                        "type": "button",
+                        "name": "player1",
+                        "text": ":mag: " + row_list[1],
+                        "url": player1,
+                        "style": "normal"
+                    },
+                    {
+                        "type": "button",
+                        "name": "player2",
+                        "text": ":mag: " + row_list[3],
+                        "url": player2,
+                        "style": "normal"
+                    }
+                ] 
             }
-          
         ]
     }
 
-    requests.post('#', data=json.dumps(payload))                
+    requests.post('https://hooks.slack.com/services/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', data=json.dumps(payload))                
 
 def main():
     # 週間対局予定ページを開く
     r = requests.get('https://www.shogi.or.jp/game/#jsTabE01_02', headers=h)
     soup = BeautifulSoup(r.content, "lxml") # r.textだと文字化けする
     tommorow_day =  str(datetime.datetime.now().day + 1) # 明日の日にちを取得
-    tommorow_day = str(25)
+    tommorow_day = str(28)
 
     count = 1
     for tag in soup.find(id="jsTabE01_02").find_all("td"):
@@ -133,13 +151,14 @@ def main():
                 # elif row_num == 3:
                 #     row_list[6] = "ニコニコAbemaTV"
                 # elif row_num == 4:
-                #     row_list[0] = "銀河"
+                #     row_list[0] = "銀河戦 Aブロック"
                 # elif row_num == 5:
-                #     row_list[0] = "NHK"
+                #     row_list[0] = "NHK杯"
 
                 all_row_list.append(deepcopy(row_list))
-                picture.createImage(row_list, count, ladies_count)
+                picture.postSlackImage(row_list, count, ladies_count)
                 postSlackMessage(row_list)
+                # break
                 count += 1
                 col_num = 1
                 row_num += 1
