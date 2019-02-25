@@ -33,7 +33,7 @@ def drawText(draw,
     y = (img_height - h)/2
     draw.text((x, y + text_height), text, fill=(text_color), font=font)
 
-def createImage(row_list, count, ladies_count): 
+def postSlackImage(row_list, count, ladies_count): 
     if row_list[6].count("AbemaTV") and row_list[6].count("ニコニコ"):
         image_name = "abema-niconico.jpg"
         text_color = "#FFF"
@@ -47,7 +47,7 @@ def createImage(row_list, count, ladies_count):
         image_name = "ginga.jpg"
         text_color = "#FFF"
     elif row_list[0].count("NHK杯"):
-        row_list[0] = "NHK杯テレビ将棋トーナメント"
+        row_list[0] = "NHK杯将棋トーナメント"
         image_name = "nhk.jpg"
         text_color = "#000"
     elif ladies_count == 2:
