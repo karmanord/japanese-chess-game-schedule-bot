@@ -23,7 +23,6 @@ def exec():
 
     body = res.read()
     data = json.loads(body)
-    print(data)
     for m in data['messages']:
         delete_params = {
             'channel' : channel,
