@@ -12,6 +12,7 @@ import datetime
 import urllib.parse
 
 import picture
+import deleteMessage
 
 from enum import Enum
 
@@ -77,48 +78,54 @@ def getPlayerInfo(tag, row_list):
             status = "九段"
         row_list.append(status)
 
-def postSlackMessage(row_list):
+def postSlackMessage(row_list, image_url):
     base_url = "https://www.google.com/search?q="
     player1 = urllib.parse.quote(row_list[1] + " 将棋")
     player1 = base_url + player1
     
     player2 = urllib.parse.quote(row_list[3] + " 将棋")
     player2 = base_url + player2
+
+    tomorrow_date = datetime.date.today() + datetime.timedelta(days=1)
+    tomorrow_str = tomorrow_date.strftime("%-Y年%-m月%-d日")
     # Slackに取得した情報を送信する
     payload = {
         "attachments": [
             {
                 "fallback": "",
+                "color": "#2eb886",
+		        "text":  "*" + str(tomorrow_str) + ' - 第' + str(row_num) + '組*',
+                "image_url": image_url,
                 "actions": [
                     {
                         "type": "button",
                         "name": "player1",
                         "text": ":mag: " + row_list[1],
                         "url": player1,
-                        "style": "normal"
+                        "style": "normal",
                     },
                     {
                         "type": "button",
                         "name": "player2",
                         "text": ":mag: " + row_list[3],
                         "url": player2,
-                        "style": "normal"
+                        "style": "normal",
                     }
                 ] 
             }
         ]
     }
 
-    requests.post('https://hooks.slack.com/services/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', data=json.dumps(payload))                
+    requests.post('#', data=json.dumps(payload))
 
 def main():
+    deleteMessage.exec()
     # 週間対局予定ページを開く
     r = requests.get('https://www.shogi.or.jp/game/#jsTabE01_02', headers=h)
     soup = BeautifulSoup(r.content, "lxml") # r.textだと文字化けする
     tommorow_day =  str(datetime.datetime.now().day + 1) # 明日の日にちを取得
-    tommorow_day = str(28)
+    # tommorow_day = str(1)
 
-    count = 1
     for tag in soup.find(id="jsTabE01_02").find_all("td"):
         # 週間対局予定ページの日にち箇所の判定
         if re.search('colspan="5"', str(tag)) is not None:
@@ -144,22 +151,21 @@ def main():
             # 列番号をリセットする
             elif col_num == 5:
                 row_list.append(tag.text.strip(" "))
-                # if row_num == 1:
-                #     row_list[6] = "AbemaTV"
-                # elif row_num == 2:
-                #     row_list[6] = "ニコニコ"
-                # elif row_num == 3:
-                #     row_list[6] = "ニコニコAbemaTV"
-                # elif row_num == 4:
-                #     row_list[0] = "銀河戦 Aブロック"
-                # elif row_num == 5:
-                #     row_list[0] = "NHK杯"
+                if row_num == 1:
+                    row_list[6] = "AbemaTV"
+                elif row_num == 2:
+                    row_list[6] = "ニコニコ"
+                elif row_num == 3:
+                    row_list[6] = "ニコニコAbemaTV"
+                elif row_num == 4:
+                    row_list[0] = "銀河戦 Aブロック"
+                elif row_num == 5:
+                    row_list[0] = "NHK杯"
 
                 all_row_list.append(deepcopy(row_list))
-                picture.postSlackImage(row_list, count, ladies_count)
-                postSlackMessage(row_list)
-                # break
-                count += 1
+                image_url = picture.postSlackImage(row_list, row_num, ladies_count)
+                postSlackMessage(row_list, image_url)
+                #break
                 col_num = 1
                 row_num += 1
                 ladies_count = 0
@@ -168,7 +174,6 @@ def main():
             else:
                 row_list.append(tag.text.strip(" "))
             col_num += 1
-    print(all_row_list)
 
 if __name__ == '__main__':
     main()

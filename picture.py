@@ -7,7 +7,7 @@ from PIL import ImageDraw
 from PIL import ImageFilter
 import requests
 import datetime
-
+import json
 
 def drawText(draw,
              text_font_family,
@@ -33,7 +33,7 @@ def drawText(draw,
     y = (img_height - h)/2
     draw.text((x, y + text_height), text, fill=(text_color), font=font)
 
-def postSlackImage(row_list, count, ladies_count): 
+def postSlackImage(row_list, row_num, ladies_count): 
     if row_list[6].count("AbemaTV") and row_list[6].count("ニコニコ"):
         image_name = "abema-niconico.jpg"
         text_color = "#FFF"
@@ -71,15 +71,19 @@ def postSlackImage(row_list, count, ladies_count):
     title =  row_list[0]
     drawText(draw, text_font_family, 100, text_color, 320, title, img_width, img_height)
 
-    img.save(str(count) + '.jpg', 'JPEG', quality=100, optimize=True)
-    files = {'file': open(str(count) + '.jpg', 'rb')}
+    img.save('upload.jpg', 'JPEG', quality=70, optimize=True)
+    files = {'file': open('upload.jpg', 'rb')}
     tomorrow_date = datetime.date.today() + datetime.timedelta(days=1)
     tomorrow_str = tomorrow_date.strftime("%Y年%m月%d日")
     param = {
-        'token':"#", 
-        'channels':"CGAUB38SU",
+        'token':"#",
+        'channels':"#",
         # 'filename': str(count) + '.jpg',
         # 'initial_comment': "initial_comment",
-        'title': str(tomorrow_str) + ' - 第' + str(count) + '組',
+        'title': str(tomorrow_str) + ' - 第' + str(row_num) + '組',
     }
-    requests.post(url="https://slack.com/api/files.upload",params=param, files=files)
+    result = requests.post(url="https://slack.com/api/files.upload",params=param, files=files)
+    json_data = result.json()
+    #print(json.dumps(json_data))
+    image_url = json.dumps(json_data["file"]["url_private"])
+    return image_url.replace("\"", "")
