@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import os
+import boto3
+from base64 import b64decode
 import urllib.request
 import urllib.parse
 import json
@@ -6,8 +11,11 @@ import time
 hist_url = "https://slack.com/api/channels.history"
 delete_url = "https://slack.com/api/chat.delete"
 
-token = '#'
-channels = ['#']
+token = boto3.client('kms').decrypt(CiphertextBlob=b64decode(os.environ['token']))['Plaintext']
+channels = [
+            boto3.client('kms').decrypt(CiphertextBlob=b64decode(os.environ['game_info_channel']))['Plaintext'],
+            boto3.client('kms').decrypt(CiphertextBlob=b64decode(os.environ['images_channel']))['Plaintext']
+           ]
 
 def exec():
   for channel in channels:
