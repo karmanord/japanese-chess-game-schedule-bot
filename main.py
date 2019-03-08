@@ -48,10 +48,12 @@ def getPlayerInfo(tag, row_list):
         ladies_count += 1
 
     if "※" in tag.text:
+        # LPSA所属棋士に付けられる「※」を除いてリストに追加
         row_list.append(tag.text.strip(" ""※"))
         row_list.append("(LPSA)")
         ladies_count += 1
     elif "＊" in tag.text: 
+        # フリー棋士に付けられる「＊」を除いてリストに追加
         row_list.append(tag.text.strip(" ""＊"))
         row_list.append("(フリー)")
     elif "アマ" in tag.text: 
@@ -61,14 +63,17 @@ def getPlayerInfo(tag, row_list):
         link = tag.find("a", href=re.compile("^/player/"))
         if link is not None:
             player_page = requests.get('https://www.shogi.or.jp' + link["href"], headers=h)
+            # print(1)
             sleep(1)
             player_soup = BeautifulSoup(player_page.content, "lxml") 
             row_list.append(tag.text.strip(" "))
+            # 段位・称号をリストに追加
             status = player_soup.select(".headingElementsA01.min.ico03")[0].text.strip(" ")
 
             if status in ladies_title:
                 ladies_count += 1
             elif status.count("女流"):
+                # status = status.replace("女流", "") 
                 ladies_count += 1
             elif status.count("引退"):
                 status = "九段"
@@ -110,6 +115,7 @@ def postSlackMessage(row_list, image_url):
     else:
         text = '*' + str(tomorrow_str) + ' - 第' + str(row_num) + '組*'
         fallback = str(tomorrow_str) + " " + row_list[2] + row_list[3]  + " - " + row_list[4] + row_list[5]
+    # Slackに取得した情報を送信する
     payload = {
         "attachments": [
             {
@@ -155,10 +161,13 @@ def irregularPostSlackMessage():
 
 def main():
     deleteMessage.exec()
+    # 週間対局予定ページを開く
     r = requests.get('https://www.shogi.or.jp/game/#jsTabE01_02', headers=h)
-    soup = BeautifulSoup(r.content, "lxml")
-    tommorow_day = str((datetime.datetime.now() + datetime.timedelta(days = 1)).day)
+    soup = BeautifulSoup(r.content, "lxml") # r.textだと文字化けする
+    tommorow_day = str((datetime.datetime.now() + datetime.timedelta(days = 1)).day) # 明日の日にちを取得
+    tommorow_day = str(10)
     for tag in soup.find(id="jsTabE01_02").find_all("td"):
+        # 週間対局予定ページの日にち箇所の判定
         if re.search('colspan="5"', str(tag)) is not None:
             global tommorow_flg
             if re.search("月" + tommorow_day + "日|月" + tommorow_day +"・|・" + tommorow_day +"日", str(tag)):
@@ -173,6 +182,7 @@ def main():
             global col_num
             global ladies_count
             global row_list
+            # 棋戦名が他の行とグルーピングされていて存在しない場合、上の行から棋戦名をコピーする
             if col_num == 1 and re.search('class="tac"', str(tag)): 
                 row_list.append(all_row_list[row_num - 2][0])
                 row_list.append(all_row_list[row_num - 2][1])
@@ -184,6 +194,7 @@ def main():
                 row_list.append(link["href"])
             elif col_num == 2 or col_num == 3:
                 getPlayerInfo(tag, row_list)
+            # 列番号をリセットする
             elif col_num == 5:
                 row_list.append(tag.text.strip(" "))
                 all_row_list.append(deepcopy(row_list))

@@ -25,8 +25,10 @@ def drawText(draw,
     out_text_size = (img_width + 1, img_height + 1)
     font_size_offset = 0
     font = ImageFont.truetype(text_font_family, text_max_font_size, encoding='utf-8')
+    # フォントの描画サイズが描画領域のサイズを下回るまでwhile
     while img_width < out_text_size[0] + 120 or img_height < out_text_size[1]+ 120:
         font = ImageFont.truetype(text_font_family, text_max_font_size - font_size_offset)
+        # draw.textsizeで描画時のサイズを取得
         out_text_size = draw.textsize(text, font=font)
         font_size_offset += 1
     w, h = font.getsize(text)
