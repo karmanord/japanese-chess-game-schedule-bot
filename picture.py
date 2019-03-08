@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import os
+import boto3
+from base64 import b64decode
 import sys
 from PIL import ImageFont
 from PIL import Image
@@ -22,10 +25,8 @@ def drawText(draw,
     out_text_size = (img_width + 1, img_height + 1)
     font_size_offset = 0
     font = ImageFont.truetype(text_font_family, text_max_font_size, encoding='utf-8')
-    # フォントの描画サイズが描画領域のサイズを下回るまでwhile
     while img_width < out_text_size[0] + 120 or img_height < out_text_size[1]+ 120:
         font = ImageFont.truetype(text_font_family, text_max_font_size - font_size_offset)
-        # draw.textsizeで描画時のサイズを取得
         out_text_size = draw.textsize(text, font=font)
         font_size_offset += 1
     w, h = font.getsize(text)
@@ -71,13 +72,13 @@ def postSlackImage(row_list, row_num, ladies_count):
     title =  row_list[0]
     drawText(draw, text_font_family, 100, text_color, 320, title, img_width, img_height)
 
-    img.save('upload.jpg', 'JPEG', quality=70, optimize=True)
-    files = {'file': open('upload.jpg', 'rb')}
+    img.save('/tmp/upload.jpg', 'JPEG', quality=70, optimize=True)
+    files = {'file': open('/tmp/upload.jpg', 'rb')}
     tomorrow_date = datetime.date.today() + datetime.timedelta(days=1)
     tomorrow_str = tomorrow_date.strftime("%Y年%m月%d日")
     param = {
-        'token':"#",
-        'channels':"#",
+        'token': boto3.client('kms').decrypt(CiphertextBlob=b64decode(os.environ['token']))['Plaintext'],
+        'channels':boto3.client('kms').decrypt(CiphertextBlob=b64decode(os.environ['images_channel']))['Plaintext'],
         'title': str(tomorrow_str) + ' - 第' + str(row_num) + '組',
     }
     result = requests.post(url="https://slack.com/api/files.upload",params=param, files=files)
