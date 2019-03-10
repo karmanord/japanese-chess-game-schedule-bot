@@ -165,7 +165,6 @@ def main():
     r = requests.get('https://www.shogi.or.jp/game/#jsTabE01_02', headers=h)
     soup = BeautifulSoup(r.content, "lxml") # r.textだと文字化けする
     tommorow_day = str((datetime.datetime.now() + datetime.timedelta(days = 1)).day) # 明日の日にちを取得
-    tommorow_day = str(10)
     for tag in soup.find(id="jsTabE01_02").find_all("td"):
         # 週間対局予定ページの日にち箇所の判定
         if re.search('colspan="5"', str(tag)) is not None:
